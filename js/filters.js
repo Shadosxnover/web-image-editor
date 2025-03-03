@@ -1,75 +1,114 @@
+// filters.js - Filter implementations
 const filters = {
     grayscale() {
-        const activeObject = fabricCanvas.getActiveObject();
+        const activeObject = canvas.getActiveObjects()[0];
         if (activeObject && activeObject.type === 'image') {
             activeObject.filters.push(new fabric.Image.filters.Grayscale());
             activeObject.applyFilters();
-            fabricCanvas.renderAll();
+            canvas.renderAll();
+        } else if (canvas.backgroundImage) {
+            canvas.backgroundImage.filters.push(new fabric.Image.filters.Grayscale());
+            canvas.backgroundImage.applyFilters();
+            canvas.renderAll();
         }
     },
 
     sepia() {
-        const activeObject = fabricCanvas.getActiveObject();
+        const activeObject = canvas.getActiveObjects()[0];
         if (activeObject && activeObject.type === 'image') {
             activeObject.filters.push(new fabric.Image.filters.Sepia());
             activeObject.applyFilters();
-            fabricCanvas.renderAll();
+            canvas.renderAll();
+        } else if (canvas.backgroundImage) {
+            canvas.backgroundImage.filters.push(new fabric.Image.filters.Sepia());
+            canvas.backgroundImage.applyFilters();
+            canvas.renderAll();
         }
     },
 
-    brightness(value = 0.1) {
-        const activeObject = fabricCanvas.getActiveObject();
+    invert() {
+        const activeObject = canvas.getActiveObjects()[0];
         if (activeObject && activeObject.type === 'image') {
-            activeObject.filters.push(new fabric.Image.filters.Brightness({
-                brightness: value
-            }));
+            activeObject.filters.push(new fabric.Image.filters.Invert());
             activeObject.applyFilters();
-            fabricCanvas.renderAll();
+            canvas.renderAll();
+        } else if (canvas.backgroundImage) {
+            canvas.backgroundImage.filters.push(new fabric.Image.filters.Invert());
+            canvas.backgroundImage.applyFilters();
+            canvas.renderAll();
         }
     },
 
-    contrast(value = 0.1) {
-        const activeObject = fabricCanvas.getActiveObject();
+    vintage() { // Alias for Sepia + slight adjustments (Fabric.js doesn’t have a direct "vintage" filter)
+        const activeObject = canvas.getActiveObjects()[0];
         if (activeObject && activeObject.type === 'image') {
-            activeObject.filters.push(new fabric.Image.filters.Contrast({
-                contrast: value
-            }));
+            activeObject.filters.push(new fabric.Image.filters.Sepia());
+            activeObject.filters.push(new fabric.Image.filters.Brightness({ brightness: 0.05 }));
             activeObject.applyFilters();
-            fabricCanvas.renderAll();
-        }
-    },
-
-    saturation(value = 0.1) {
-        const activeObject = fabricCanvas.getActiveObject();
-        if (activeObject && activeObject.type === 'image') {
-            activeObject.filters.push(new fabric.Image.filters.Saturation({
-                saturation: value
-            }));
-            activeObject.applyFilters();
-            fabricCanvas.renderAll();
+            canvas.renderAll();
+        } else if (canvas.backgroundImage) {
+            canvas.backgroundImage.filters.push(new fabric.Image.filters.Sepia());
+            canvas.backgroundImage.filters.push(new fabric.Image.filters.Brightness({ brightness: 0.05 }));
+            canvas.backgroundImage.applyFilters();
+            canvas.renderAll();
         }
     },
 
     blur(value = 0.1) {
-        const activeObject = fabricCanvas.getActiveObject();
+        const activeObject = canvas.getActiveObjects()[0];
         if (activeObject && activeObject.type === 'image') {
-            activeObject.filters.push(new fabric.Image.filters.Blur({
-                blur: value
+            activeObject.filters.push(new fabric.Image.filters.Blur({ blur: value }));
+            activeObject.applyFilters();
+            canvas.renderAll();
+        } else if (canvas.backgroundImage) {
+            canvas.backgroundImage.filters.push(new fabric.Image.filters.Blur({ blur: value }));
+            canvas.backgroundImage.applyFilters();
+            canvas.renderAll();
+        }
+    },
+
+    sharpen() { // Fabric.js doesn’t have a direct sharpen filter, so we simulate with Convolute
+        const activeObject = canvas.getActiveObjects()[0];
+        if (activeObject && activeObject.type === 'image') {
+            activeObject.filters.push(new fabric.Image.filters.Convolute({
+                matrix: [0, -1, 0, -1, 5, -1, 0, -1, 0] // Simple sharpening kernel
             }));
             activeObject.applyFilters();
-            fabricCanvas.renderAll();
+            canvas.renderAll();
+        } else if (canvas.backgroundImage) {
+            canvas.backgroundImage.filters.push(new fabric.Image.filters.Convolute({
+                matrix: [0, -1, 0, -1, 5, -1, 0, -1, 0]
+            }));
+            canvas.backgroundImage.applyFilters();
+            canvas.renderAll();
+        }
+    },
+
+    brightness(value = 0.1) {
+        const activeObject = canvas.getActiveObjects()[0];
+        if (activeObject && activeObject.type === 'image') {
+            activeObject.filters.push(new fabric.Image.filters.Brightness({ brightness: value }));
+            activeObject.applyFilters();
+            canvas.renderAll();
+        } else if (canvas.backgroundImage) {
+            canvas.backgroundImage.filters.push(new fabric.Image.filters.Brightness({ brightness: value }));
+            canvas.backgroundImage.applyFilters();
+            canvas.renderAll();
         }
     },
 
     removeFilter() {
-        const activeObject = fabricCanvas.getActiveObject();
+        const activeObject = canvas.getActiveObjects()[0];
         if (activeObject && activeObject.type === 'image') {
             activeObject.filters = [];
             activeObject.applyFilters();
-            fabricCanvas.renderAll();
+            canvas.renderAll();
+        } else if (canvas.backgroundImage) {
+            canvas.backgroundImage.filters = [];
+            canvas.backgroundImage.applyFilters();
+            canvas.renderAll();
         }
     }
 };
 
-// Make filters available globally
 window.filters = filters;
