@@ -1,4 +1,3 @@
-// filters.js - Filter implementations
 const filters = {
     grayscale() {
         const activeObject = canvas.getActiveObjects()[0];
@@ -39,7 +38,7 @@ const filters = {
         }
     },
 
-    vintage() { // Alias for Sepia + slight adjustments (Fabric.js doesn’t have a direct "vintage" filter)
+    vintage() {
         const activeObject = canvas.getActiveObjects()[0];
         if (activeObject && activeObject.type === 'image') {
             activeObject.filters.push(new fabric.Image.filters.Sepia());
@@ -67,7 +66,7 @@ const filters = {
         }
     },
 
-    sharpen() { // Fabric.js doesn’t have a direct sharpen filter, so we simulate with Convolute
+    sharpen() {
         const activeObject = canvas.getActiveObjects()[0];
         if (activeObject && activeObject.type === 'image') {
             activeObject.filters.push(new fabric.Image.filters.Convolute({

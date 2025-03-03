@@ -1,6 +1,4 @@
-// events.js - Event handlers
 function initEvents() {
-    // Upload
     document.getElementById('uploadBtn').addEventListener('click', function() {
         document.getElementById('imageUpload').click();
     });
@@ -21,7 +19,6 @@ function initEvents() {
         tools.uploadImage(file);
     });
     
-    // Zoom controls
     document.getElementById('zoomInBtn').addEventListener('click', function() {
         if (!canvas.backgroundImage) return;
         
@@ -69,7 +66,6 @@ function initEvents() {
             `Image: ${scaledWidth}×${scaledHeight} px (${Math.round(scale * 100)}%)`;
     });
     
-    // Tools
     let cropRect = null;
     document.getElementById('cropBtn').addEventListener('click', function() {
         if (!cropRect) {
@@ -122,10 +118,6 @@ function initEvents() {
         tools.addEmoji();
     });
     
-    // Remove the shape button event listener
-    // document.getElementById('shapeBtn').addEventListener('click', function() {...});
-    
-    // Drawing
     document.getElementById('drawBtn').addEventListener('click', function() {
         const isActive = this.classList.contains('bg-blue-100');
         
@@ -144,7 +136,6 @@ function initEvents() {
         document.getElementById('drawBtn').classList.remove('bg-blue-100');
     });
     
-    // Filter buttons (your HTML uses a dropdown, so we target .filter-btn)
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const filterType = btn.dataset.filter;
@@ -158,12 +149,10 @@ function initEvents() {
         });
     });
     
-    // Download
     document.getElementById('downloadBtn').addEventListener('click', function() {
         tools.downloadImage();
     });
     
-    // Undo/Redo (basic implementation)
     document.getElementById('undoBtn').addEventListener('click', function() {
         if (canvas._objects.length > 0) {
             canvas.remove(canvas._objects[canvas._objects.length - 1]);

@@ -1,4 +1,3 @@
-// tools.js - Tool implementations
 const tools = {
     uploadImage(file) {
         if (!window.canvas) {
@@ -6,7 +5,6 @@ const tools = {
             return;
         }
 
-        // Show loading indicator
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('placeholder').classList.add('hidden');
         
@@ -21,7 +19,6 @@ const tools = {
                     top: canvas.height / 2
                 });
                 
-                // Center and scale image
                 const scale = Math.min(
                     (canvas.width * 0.8) / img.width,
                     (canvas.height * 0.8) / img.height
@@ -31,10 +28,8 @@ const tools = {
                 canvas.centerObject(img);
                 canvas.renderAll();
                 
-                // Hide loading indicator
                 document.getElementById('loading').classList.add('hidden');
                 
-                // Update image info
                 const scaledWidth = Math.round(img.width * scale);
                 const scaledHeight = Math.round(img.height * scale);
                 document.getElementById('image-info').textContent = 
@@ -161,11 +156,9 @@ const tools = {
                 top: canvas.height / 2
             });
             
-            // Fit the new image to the canvas (assuming fitImageToCanvas is defined)
             fitImageToCanvas();
         });
         
-        // Remove the crop rectangle from the canvas
         canvas.remove(cropRect);
     },
 
