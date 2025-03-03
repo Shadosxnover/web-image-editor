@@ -1,132 +1,176 @@
+// events.js - Event handlers
 function initEvents() {
     // Upload
-    document.getElementById('uploadBtn').addEventListener('click', () => {
+    document.getElementById('uploadBtn').addEventListener('click', function() {
         document.getElementById('imageUpload').click();
     });
-
-    document.getElementById('imageUpload').addEventListener('change', (e) => {
-        if (e.target.files?.[0]) {
-            tools.uploadImage(e.target.files[0]);
+    
+    document.getElementById('upload-placeholder').addEventListener('click', function() {
+        document.getElementById('imageUpload').click();
+    });
+    
+    document.getElementById('imageUpload').addEventListener('change', function(e) {
+        if (e.target.files.length === 0) return;
+        
+        const file = e.target.files[0];
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file.');
+            return;
+        }
+        
+        tools.uploadImage(file);
+    });
+    
+    // Zoom controls
+    document.getElementById('zoomInBtn').addEventListener('click', function() {
+        if (!canvas.backgroundImage) return;
+        
+        const img = canvas.backgroundImage;
+        img.scale(img.scaleX * 1.2);
+        canvas.renderAll();
+        
+        const scaledWidth = Math.round(img.width * img.scaleX);
+        const scaledHeight = Math.round(img.height * img.scaleY);
+        document.getElementById('image-info').textContent = 
+            `Image: ${scaledWidth}×${scaledHeight} px (${Math.round(img.scaleX * 100)}%)`;
+    });
+    
+    document.getElementById('zoomOutBtn').addEventListener('click', function() {
+        if (!canvas.backgroundImage) return;
+        
+        const img = canvas.backgroundImage;
+        img.scale(img.scaleX * 0.8);
+        canvas.renderAll();
+        
+        const scaledWidth = Math.round(img.width * img.scaleX);
+        const scaledHeight = Math.round(img.height * img.scaleY);
+        document.getElementById('image-info').textContent = 
+            `Image: ${scaledWidth}×${scaledHeight} px (${Math.round(img.scaleX * 100)}%)`;
+    });
+    
+    document.getElementById('fitScreenBtn').addEventListener('click', function() {
+        if (!canvas.backgroundImage) return;
+        fitImageToCanvas();
+    });
+    
+    document.getElementById('zoom-level').addEventListener('change', function() {
+        if (!canvas.backgroundImage) return;
+        
+        const scale = parseFloat(this.value);
+        const img = canvas.backgroundImage;
+        img.scale(scale);
+        
+        canvas.centerObject(img);
+        canvas.renderAll();
+        
+        const scaledWidth = Math.round(img.width * scale);
+        const scaledHeight = Math.round(img.height * scale);
+        document.getElementById('image-info').textContent = 
+            `Image: ${scaledWidth}×${scaledHeight} px (${Math.round(scale * 100)}%)`;
+    });
+    
+    // Tools
+    let cropRect = null;
+    document.getElementById('cropBtn').addEventListener('click', function() {
+        if (!cropRect) {
+            cropRect = tools.initCrop();
+            if (cropRect) {
+                this.classList.add('bg-blue-100');
+            }
+        } else {
+            tools.applyCrop(cropRect);
+            cropRect = null;
+            this.classList.remove('bg-blue-100');
         }
     });
-
-    // Text
-    document.getElementById('textBtn').addEventListener('click', () => {
+    
+    document.getElementById('resizeBtn').addEventListener('click', function() {
+        const img = canvas.backgroundImage;
+        if (!img) {
+            alert('Please upload an image first');
+            return;
+        }
+        
+        const currentWidth = Math.round(img.width * img.scaleX);
+        const currentHeight = Math.round(img.height * img.scaleY);
+        
+        const width = prompt('Enter width (px):', currentWidth);
+        if (!width) return;
+        
+        const height = prompt('Enter height (px):', currentHeight);
+        if (!height) return;
+        
+        tools.resizeImage(parseInt(width), parseInt(height));
+    });
+    
+    document.getElementById('rotateBtn').addEventListener('click', function() {
+        if (!canvas.backgroundImage) {
+            alert('Please upload an image first');
+            return;
+        }
+        
+        const img = canvas.backgroundImage;
+        img.rotate((img.angle || 0) + 90);
+        canvas.renderAll();
+    });
+    
+    document.getElementById('textBtn').addEventListener('click', function() {
         tools.addText();
     });
-
-    // Emoji
-    document.getElementById('emojiBtn').addEventListener('click', () => {
+    
+    document.getElementById('emojiBtn').addEventListener('click', function() {
         tools.addEmoji();
     });
-
+    
+    // Remove the shape button event listener
+    // document.getElementById('shapeBtn').addEventListener('click', function() {...});
+    
     // Drawing
-    document.getElementById('drawBtn').addEventListener('click', (e) => {
-        const isDrawing = !canvas.isDrawingMode;
-        tools.setDrawingMode(isDrawing);
-        e.currentTarget.classList.toggle('bg-blue-100', isDrawing);
+    document.getElementById('drawBtn').addEventListener('click', function() {
+        const isActive = this.classList.contains('bg-blue-100');
+        
+        tools.setDrawingMode(!isActive);
+        
+        this.classList.toggle('bg-blue-100', !isActive);
         document.getElementById('eraserBtn').classList.remove('bg-blue-100');
     });
-
-    // Eraser
-    document.getElementById('eraserBtn').addEventListener('click', (e) => {
-        const isErasing = !canvas.isDrawingMode;
-        tools.setEraserMode(isErasing);
-        e.currentTarget.classList.toggle('bg-blue-100', isErasing);
+    
+    document.getElementById('eraserBtn').addEventListener('click', function() {
+        const isActive = this.classList.contains('bg-blue-100');
+        
+        tools.setEraserMode(!isActive);
+        
+        this.classList.toggle('bg-blue-100', !isActive);
         document.getElementById('drawBtn').classList.remove('bg-blue-100');
     });
-
-    // Filter
-    document.getElementById('filterBtn').addEventListener('click', () => {
-        const filterMenu = document.createElement('div');
-        filterMenu.className = 'absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg';
-        filterMenu.innerHTML = `
-            <div class="py-1">
-                <button onclick="filters.grayscale()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">Grayscale</button>
-                <button onclick="filters.sepia()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">Sepia</button>
-                <button onclick="filters.brightness(0.1)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">Brighten</button>
-                <button onclick="filters.contrast(0.1)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">Increase Contrast</button>
-                <button onclick="filters.saturation(0.1)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">Increase Saturation</button>
-                <button onclick="filters.blur(0.1)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">Blur</button>
-                <button onclick="filters.removeFilter()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">Remove Filters</button>
-            </div>
-        `;
-        
-        document.getElementById('filterBtn').appendChild(filterMenu);
-        
-        // Close menu when clicking outside
-        const closeMenu = (e) => {
-            if (!filterMenu.contains(e.target)) {
-                filterMenu.remove();
-                document.removeEventListener('click', closeMenu);
-            }
-        };
-        
-        setTimeout(() => {
-            document.addEventListener('click', closeMenu);
-        }, 0);
-    });
-
-    // Filter buttons
+    
+    // Filter buttons (your HTML uses a dropdown, so we target .filter-btn)
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const filterType = btn.dataset.filter;
             if (filterType === 'none') {
                 filters.removeFilter();
+            } else if (filters[filterType]) {
+                filters[filterType]();
             } else {
-                filters[filterType]?.();
+                console.warn(`Filter "${filterType}" not implemented yet.`);
             }
         });
     });
-
-    // Crop
-    let cropRect = null;
-    document.getElementById('cropBtn').addEventListener('click', () => {
-        if (!cropRect) {
-            cropRect = tools.initCrop();
-            document.getElementById('cropBtn').classList.add('bg-blue-100');
-        } else {
-            tools.applyCrop(cropRect);
-            cropRect = null;
-            document.getElementById('cropBtn').classList.remove('bg-blue-100');
-        }
-    });
-
-    // Resize
-    document.getElementById('resizeBtn').addEventListener('click', () => {
-        const img = canvas.backgroundImage;
-        if (!img) return;
-
-        const width = prompt('Enter width (px):', Math.round(img.width * img.scaleX));
-        const height = prompt('Enter height (px):', Math.round(img.height * img.scaleY));
-        
-        if (width && height) {
-            tools.resizeImage(parseInt(width), parseInt(height));
-        }
-    });
-
-    // Shape
-    document.getElementById('shapeBtn').addEventListener('click', () => {
-        const menu = document.createElement('div');
-        menu.className = 'absolute left-full ml-2 bg-white rounded-lg shadow-lg p-2';
-        menu.innerHTML = `
-            <button class="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded" onclick="tools.addShape('rect')">Rectangle</button>
-            <button class="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded" onclick="tools.addShape('circle')">Circle</button>
-            <button class="block w-full text-left px-3 py-2 hover:bg-gray-100 rounded" onclick="tools.addShape('triangle')">Triangle</button>
-        `;
-        document.getElementById('shapeBtn').appendChild(menu);
-
-        const closeMenu = (e) => {
-            if (!menu.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            }
-        };
-        setTimeout(() => document.addEventListener('click', closeMenu), 0);
-    });
-
+    
     // Download
-    document.getElementById('downloadBtn').addEventListener('click', () => {
+    document.getElementById('downloadBtn').addEventListener('click', function() {
         tools.downloadImage();
+    });
+    
+    // Undo/Redo (basic implementation)
+    document.getElementById('undoBtn').addEventListener('click', function() {
+        if (canvas._objects.length > 0) {
+            canvas.remove(canvas._objects[canvas._objects.length - 1]);
+        }
+    });
+    
+    document.getElementById('redoBtn').addEventListener('click', function() {
+        alert('Redo functionality requires a history management system');
     });
 }
