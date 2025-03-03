@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Image Editor</title>
+    <link rel="icon" type="image/svg+xml" href="/edit.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/3.5.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        .menu-dropdown {
+            position: absolute;
+            left: 100%;
+            top: 0;
+            margin-left: 8px;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.2s ease;
+        }
+        .menu-item:hover .menu-dropdown {
+            visibility: visible;
+            opacity: 1;
+        }
+        #canvas-container {
+            position: relative;
+            overflow: hidden;
+            height: calc(100vh - 160px);
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                            linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                            linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                            linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        .tooltip {
+            position: relative;
+        }
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 10px;
+            padding: 4px 8px;
+            background: #333;
+            color: white;
+            border-radius: 4px;
+            white-space: nowrap;
+            font-size: 12px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-4">
+        <header class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Web Image Editor</h1>
+                <p class="text-gray-600 text-sm">Create, edit, and enhance your images</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="undoBtn" class="bg-white px-3 py-2 rounded-md shadow text-gray-700 hover:bg-gray-50 transition flex items-center gap-1 disabled:opacity-50">
+                    <i class="ri-arrow-go-back-line"></i>
+                    <span>Undo</span>
+                </button>
+                <button id="redoBtn" class="bg-white px-3 py-2 rounded-md shadow text-gray-700 hover:bg-gray-50 transition flex items-center gap-1 disabled:opacity-50">
+                    <i class="ri-arrow-go-forward-line"></i>
+                    <span>Redo</span>
+                </button>
+            </div>
+        </header>
+        
+        <div class="flex gap-4">
+            <!-- Toolbar -->
+            <div class="bg-white rounded-lg p-3 shadow-lg w-16 flex flex-col gap-3 relative h-fit">
+                <input type="file" id="imageUpload" class="hidden" accept="image/*">
+                <button id="uploadBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center text-blue-600" data-tooltip="Upload Image">
+                    <i class="ri-upload-2-line text-xl"></i>
+                </button>
+                <div class="h-px bg-gray-200 my-1"></div>
+                <button id="cropBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Crop">
+                    <i class="ri-crop-2-line text-xl"></i>
+                </button>
+                <button id="resizeBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Resize">
+                    <i class="ri-aspect-ratio-line text-xl"></i>
+                </button>
+                <button id="rotateBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Rotate">
+                    <i class="ri-rotate-line text-xl"></i>
+                </button>
+                <div class="h-px bg-gray-200 my-1"></div>
+                <button id="textBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Add Text">
+                    <i class="ri-text text-xl"></i>
+                </button>
+                <button id="emojiBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Add Emoji">
+                    <i class="ri-emotion-line text-xl"></i>
+                </button>
+                <button id="shapeBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Add Shape">
+                    <i class="ri-shape-line text-xl"></i>
+                </button>
+                <div class="h-px bg-gray-200 my-1"></div>
+                <button id="drawBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Draw">
+                    <i class="ri-pencil-line text-xl"></i>
+                </button>
+                <button id="eraserBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Eraser">
+                    <i class="ri-eraser-line text-xl"></i>
+                </button>
+                <div class="h-px bg-gray-200 my-1"></div>
+                <div class="menu-item relative">
+                    <button id="filterBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Filters">
+                        <i class="ri-contrast-2-line text-xl"></i>
+                    </button>
+                    <div class="menu-dropdown bg-white rounded-lg shadow-lg p-2 w-48 z-10">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2 px-2">Filters</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="filter-btn p-2 text-xs hover:bg-gray-100 rounded flex items-center gap-1" data-filter="none">
+                                <i class="ri-image-line"></i> Normal
+                            </button>
+                            <button class="filter-btn p-2 text-xs hover:bg-gray-100 rounded flex items-center gap-1" data-filter="grayscale">
+                                <i class="ri-contrast-drop-line"></i> Grayscale
+                            </button>
+                            <button class="filter-btn p-2 text-xs hover:bg-gray-100 rounded flex items-center gap-1" data-filter="sepia">
+                                <i class="ri-contrast-drop-2-line"></i> Sepia
+                            </button>
+                            <button class="filter-btn p-2 text-xs hover:bg-gray-100 rounded flex items-center gap-1" data-filter="invert">
+                                <i class="ri-contrast-drop-fill"></i> Invert
+                            </button>
+                            <button class="filter-btn p-2 text-xs hover:bg-gray-100 rounded flex items-center gap-1" data-filter="vintage">
+                                <i class="ri-camera-lens-line"></i> Vintage
+                            </button>
+                            <button class="filter-btn p-2 text-xs hover:bg-gray-100 rounded flex items-center gap-1" data-filter="blur">
+                                <i class="ri-blur-off-line"></i> Blur
+                            </button>
+                            <button class="filter-btn p-2 text-xs hover:bg-gray-100 rounded flex items-center gap-1" data-filter="sharpen">
+                                <i class="ri-camera-line"></i> Sharpen
+                            </button>
+                            <button class="filter-btn p-2 text-xs hover:bg-gray-100 rounded flex items-center gap-1" data-filter="brightness">
+                                <i class="ri-sun-line"></i> Brighten
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-px bg-gray-200 my-1"></div>
+                <button id="zoomInBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Zoom In">
+                    <i class="ri-zoom-in-line text-xl"></i>
+                </button>
+                <button id="zoomOutBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Zoom Out">
+                    <i class="ri-zoom-out-line text-xl"></i>
+                </button>
+                <button id="fitScreenBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center" data-tooltip="Fit to Screen">
+                    <i class="ri-fullscreen-line text-xl"></i>
+                </button>
+                <div class="h-px bg-gray-200 my-1"></div>
+                <button id="downloadBtn" class="p-2 hover:bg-gray-100 rounded-lg tooltip flex justify-center text-green-600" data-tooltip="Download">
+                    <i class="ri-download-2-line text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="bg-white rounded-lg shadow-lg flex-1 flex flex-col">
+                <div class="border-b border-gray-200 p-3 flex justify-between items-center">
+                    <div class="text-sm text-gray-500">
+                        <span id="image-info">No image loaded</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-500">Zoom:</span>
+                        <select id="zoom-level" class="text-sm border border-gray-300 rounded px-2 py-1">
+                            <option value="0.25">25%</option>
+                            <option value="0.5">50%</option>
+                            <option value="0.75">75%</option>
+                            <option value="1" selected>100%</option>
+                            <option value="1.5">150%</option>
+                            <option value="2">200%</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="canvas-container" class="flex-1 relative">
+                    <canvas id="canvas"></canvas>
+                    <div id="loading" class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center hidden">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                    <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                        <i class="ri-image-add-line text-6xl mb-4"></i>
+                        <p class="text-lg">Upload an image to get started</p>
+                        <button id="upload-placeholder" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition">
+                            Choose Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the canvas
+        const canvas = new fabric.Canvas('canvas', {
+            backgroundColor: '#ffffff',
+            preserveObjectStacking: true
+        });
+        
+        // Set canvas dimensions to fill container
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+            
+            canvas.setDimensions({
+                width: containerWidth - 16,
+                height: containerHeight - 16
+            });
+            
+            if (canvas.backgroundImage) {
+                fitImageToCanvas();
+            }
+        }
+        
+        // Fit image to canvas while maintaining aspect ratio
+        function fitImageToCanvas() {
+            if (!canvas.backgroundImage) return;
+            
+            const img = canvas.backgroundImage;
+            const canvasWidth = canvas.getWidth();
+            const canvasHeight = canvas.getHeight();
+            
+            const imgRatio = img.width / img.height;
+            const canvasRatio = canvasWidth / canvasHeight;
+            
+            let scale;
+            if (imgRatio > canvasRatio) {
+                // Image is wider than canvas (relative to height)
+                scale = (canvasWidth * 0.9) / img.width;
+            } else {
+                // Image is taller than canvas (relative to width)
+                scale = (canvasHeight * 0.9) / img.height;
+            }
+            
+            img.scale(scale);
+            
+            canvas.centerObject(img);
+            canvas.renderAll();
+            
+            // Update image info
+            const scaledWidth = Math.round(img.width * scale);
+            const scaledHeight = Math.round(img.height * scale);
+            document.getElementById('image-info').textContent = 
+                `Image: ${scaledWidth}×${scaledHeight} px (${Math.round(scale * 100)}%)`;
+                
+            // Update zoom dropdown
+            document.getElementById('zoom-level').value = scale.toFixed(2);
+        }
+        
+        // Handle file upload
+        document.getElementById('uploadBtn').addEventListener('click', function() {
+            document.getElementById('imageUpload').click();
+        });
+        
+        document.getElementById('upload-placeholder').addEventListener('click', function() {
+            document.getElementById('imageUpload').click();
+        });
+        
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            if (e.target.files.length === 0) return;
+            
+            const file = e.target.files[0];
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file.');
+                return;
+            }
+            
+            // Show loading indicator
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('placeholder').classList.add('hidden');
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                fabric.Image.fromURL(event.target.result, function(img) {
+                    canvas.clear();
+                    canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+                        originX: 'center',
+                        originY: 'center',
+                        left: canvas.width / 2,
+                        top: canvas.height / 2
+                    });
+                    
+                    fitImageToCanvas();
+                    
+                    // Hide loading indicator
+                    document.getElementById('loading').classList.add('hidden');
+                });
+            };
+            
+            reader.readAsDataURL(file);
+        });
+        
+        // Zoom controls
+        document.getElementById('zoomInBtn').addEventListener('click', function() {
+            if (!canvas.backgroundImage) return;
+            
+            const img = canvas.backgroundImage;
+            img.scale(img.scaleX * 1.2);
+            canvas.renderAll();
+            
+            // Update image info
+            const scaledWidth = Math.round(img.width * img.scaleX);
+            const scaledHeight = Math.round(img.height * img.scaleY);
+            document.getElementById('image-info').textContent = 
+                `Image: ${scaledWidth}×${scaledHeight} px (${Math.round(img.scaleX * 100)}%)`;
+        });
+        
+        document.getElementById('zoomOutBtn').addEventListener('click', function() {
+            if (!canvas.backgroundImage) return;
+            
+            const img = canvas.backgroundImage;
+            img.scale(img.scaleX * 0.8);
+            canvas.renderAll();
+            
+            // Update image info
+            const scaledWidth = Math.round(img.width * img.scaleX);
+            const scaledHeight = Math.round(img.height * img.scaleY);
+            document.getElementById('image-info').textContent = 
+                `Image: ${scaledWidth}×${scaledHeight} px (${Math.round(img.scaleX * 100)}%)`;
+        });
+        
+        document.getElementById('fitScreenBtn').addEventListener('click', function() {
+            if (!canvas.backgroundImage) return;
+            fitImageToCanvas();
+        });
+        
+        document.getElementById('zoom-level').addEventListener('change', function() {
+            if (!canvas.backgroundImage) return;
+            
+            const scale = parseFloat(this.value);
+            const img = canvas.backgroundImage;
+            img.scale(scale);
+            
+            canvas.centerObject(img);
+            canvas.renderAll();
+            
+            // Update image info
+            const scaledWidth = Math.round(img.width * scale);
+            const scaledHeight = Math.round(img.height * scale);
+            document.getElementById('image-info').textContent = 
+                `Image: ${scaledWidth}×${scaledHeight} px (${Math.round(scale * 100)}%)`;
+        });
+        
+        // Initialize on window load
+        window.addEventListener('load', function() {
+            resizeCanvas();
+        });
+        
+        // Resize canvas when window resizes
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+        });
+        
+        // Placeholder implementation of other tool buttons
+        document.getElementById('cropBtn').addEventListener('click', function() {
+            alert('Crop tool - Add your implementation here');
+        });
+        
+        document.getElementById('textBtn').addEventListener('click', function() {
+            const text = new fabric.IText('Double click to edit', {
+                left: canvas.width / 2,
+                top: canvas.height / 2,
+                fontFamily: 'Arial',
+                fill: '#000000',
+                fontSize: 20
+            });
+            canvas.add(text);
+            canvas.setActiveObject(text);
+            canvas.renderAll();
+        });
+        
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            if (!canvas.backgroundImage) {
+                alert('Please upload an image first');
+                return;
+            }
+            
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 1
+            });
+            
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = 'edited-image.png';
+            link.click();
+        });
+    </script>
+</body>
+</html>
